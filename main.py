@@ -53,7 +53,6 @@ def check_initial_status(code: str, session: SessionDep):
     return user
     
 
-
 @app.post("/users/update/{user_id}/{new_status}")
 def update_status(
     user_id: int, 
