@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query,  WebSocket, WebSocketDisconnect, Response
 from fastapi.responses import StreamingResponse
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Field, Session, SQLModel, create_engine, select, func
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import json
@@ -226,3 +226,29 @@ async def update_comment_status(update: CommentUpdate, session: SessionDep):
         await broadcaster.broadcast(update_data)
 
     return {"message": "Status updated"}
+
+@app.get("/users/final_ratio")
+def get_final_ratio(session: Session = Depends(get_session)):
+    # 查询总数
+    total_users = session.exec(select(func.count(User.id))).one()
+    if total_users == 0:
+        return {"false": "0%", "true": "0%"}
+    
+    # 查询 final=True 的数量
+    true_count = session.exec(
+        select(func.count(User.id)).where(User.final == True)
+    ).one()
+    
+    # 查询 final=False 的数量
+    false_count = session.exec(
+        select(func.count(User.id)).where(User.final == False)
+    ).one()
+    
+    # 计算比例
+    true_percent = f"{round((true_count / total_users) * 100)}%"
+    false_percent = f"{round((false_count / total_users) * 100)}%"
+    
+    return {
+        "false": false_percent,
+        "true": true_percent
+    }
