@@ -152,7 +152,7 @@ def update_status(
     return {"message": "user status updated successfully"}
 
 # 接口1: 创建新评论
-@app.post("/comments/")
+@app.post("/comments")
 def create_comment(comment_data: CommentCreate, session: SessionDep):
     new_comment = Comment(
         user_code=comment_data.user_code,
@@ -162,9 +162,6 @@ def create_comment(comment_data: CommentCreate, session: SessionDep):
     session.add(new_comment)
     session.commit()
     session.refresh(new_comment)
-    
-    # 通知WebSocket客户端
-    manager.broadcast(json.dumps({"event": "new_comment", "data": new_comment.dict()}))
     
     return {"message": "Comment created", "id": new_comment.id}
 
@@ -177,7 +174,12 @@ def get_first_pending_comment(session: SessionDep):
         .order_by(Comment.id)
         ).first()
     if not comment:
-        raise HTTPException(status_code=404, detail="No pending comments")
+        return {
+            "id": None,
+            "user_code": None,
+            "comment": None,
+            "status": None
+        }
     return comment
 
 # 接口3: SSE获取所有已通过评论
